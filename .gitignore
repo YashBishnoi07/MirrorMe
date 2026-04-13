@@ -1,0 +1,33 @@
+# Environments
+venv/
+.env
+.env.local
+.vscode/
+node_modules/
+.next/
+out/
+build/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Data (PERSONAL & SECURE)
+# We ignore the entire local data directory to preserve user privacy
+backend/data/local/*
+!backend/data/local/.gitkeep
+
+# Audio & Media
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.webp
+backend/data/local/voice/*
+
+# OS Files
+.DS_Store
+Thumbs.db

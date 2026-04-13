@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-parchment: #f5f4ed;
+  --color-terracotta: #c96442;
+  --color-near-black: #141413;
+  --color-ivory: #faf9f5;
+  --color-sage: #7d8c7c;
+  
+  --font-serif: "Lora", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  --background: var(--color-parchment);
+  --foreground: var(--color-near-black);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, .serif {
+  font-family: var(--font-serif);
+}
+
+/* Custom scrollbar for Claude feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-parchment);
+}
+::-webkit-scrollbar-thumb {
+  background: #dcd9c6;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ccc9b4;
+}
+
+.claude-shadow {
+  box-shadow: 0 4px 20px -2px rgba(20, 20, 19, 0.05);
+}
+
+.claude-card {
+  background: var(--color-ivory);
+  border: 1px solid #e8e6db;
+  border-radius: 12px;
+}
