@@ -24,7 +24,7 @@ os.makedirs(CHROMA_DIR, exist_ok=True)
 os.makedirs(VOICE_DIR, exist_ok=True)
 
 # Voice Config
-EDGE_VOICE = "en-US-AvaNeural"  # High-quality female voice
+EDGE_VOICE = "en-US-JennyNeural"  # Warm and soothing female voice
 
 # Persona Config
 DEFAULT_MIRROR_NAME = "Yash"

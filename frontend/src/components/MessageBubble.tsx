@@ -51,21 +51,21 @@ export default function MessageBubble({ role, content }: Message) {
       {/* Avatar */}
       <div className={cn(
         "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-        isUser ? "bg-terracotta text-ivory" : "bg-[#ddd9c1] text-near-black"
+        isUser ? "bg-accent text-ivory" : "bg-scrollbar text-fg"
       )}>
         {isUser ? <User className="w-5 h-5" /> : <UserRound className="w-5 h-5 transition-transform" />}
       </div>
 
       {/* Bubble */}
       <div className={cn(
-        "max-w-[80%] px-6 py-4 rounded-2xl claude-shadow",
+        "max-w-[80%] px-6 py-4 rounded-2xl claude-shadow transition-colors duration-300",
         isUser 
-          ? "bg-terracotta text-ivory rounded-tr-none" 
-          : "bg-ivory text-near-black border border-[#e8e6db] rounded-tl-none"
+          ? "bg-accent text-ivory rounded-tr-none shadow-lg" 
+          : "bg-card text-fg border border-border rounded-tl-none"
       )}>
         <p className={cn(
           "leading-relaxed",
-          !isUser && "serif font-medium italic opacity-90"
+          !isUser && "serif font-medium italic opacity-95"
         )}>
           {content}
         </p>
@@ -74,7 +74,7 @@ export default function MessageBubble({ role, content }: Message) {
           <button 
             onClick={handleSpeak}
             disabled={isSpeaking}
-            className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity disabled:opacity-30"
+            className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-fg opacity-30 hover:opacity-100 transition-opacity disabled:opacity-30"
           >
             {isSpeaking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Volume2 className="w-3 h-3" />}
             {isSpeaking ? "Speaking..." : "Listen to style"}

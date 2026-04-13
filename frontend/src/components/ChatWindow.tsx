@@ -11,16 +11,42 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export default function ChatWindow() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "mirror", content: "Hi there. I'm your digital twin. I've been learning from your data. What would you like to talk about?" }
-  ]);
+export default function ChatWindow({ 
+  sessionId, 
+  onNewMessage 
+}: { 
+  sessionId: string;
+  onNewMessage?: () => void;
+}) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [attachedImage, setAttachedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Load history when session changes
+    const loadHistory = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/sessions/${sessionId}/history`);
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        } else {
+          setMessages([{ role: "mirror", content: "Hi there. This is a new conversation. What's on your mind?" }]);
+        }
+      } catch (e) {
+        console.error("History load error", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadHistory();
+  }, [sessionId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,16 +68,28 @@ export default function ChatWindow() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const checkNeedsSearch = (text: string) => {
+    const searchTriggers = [
+      "current", "latest", "today", "news", "weather", "score", 
+      "price of", "stock", "who is", "what happened", "now",
+      "search", "google", "look up", "tell me about"
+    ];
+    const msgLower = text.toLowerCase();
+    return searchTriggers.some(trigger => msgLower.includes(trigger));
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = { role: "user" as const, content: input };
     setMessages((prev) => [...prev, userMessage]);
     
+    const needsSearch = checkNeedsSearch(input);
+    
     // Create FormData for multipart request
     const formData = new FormData();
     formData.append("message", input);
-    formData.append("session_id", "demo-user");
+    formData.append("session_id", sessionId);
     if (attachedImage) {
       formData.append("image", attachedImage);
     }
@@ -59,6 +97,7 @@ export default function ChatWindow() {
     setInput("");
     removeImage();
     setIsLoading(true);
+    setIsSearching(needsSearch);
 
     try {
       const response = await fetch("http://127.0.0.1:8000/chat", {
@@ -75,6 +114,8 @@ export default function ChatWindow() {
       setMessages((prev) => [...prev, { role: "mirror", content: "Sorry, I had trouble connecting to my brain. Is the backend running?" }]);
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
+      if (onNewMessage) onNewMessage();
     }
   };
 
@@ -98,7 +139,12 @@ export default function ChatWindow() {
             className="flex items-center gap-2 text-sm opacity-40 serif italic mb-8"
           >
             <RefreshCw className="w-4 h-4 animate-spin" />
-            {attachedImage ? "Mirror is visualizing the image..." : "Mirror is thinking..."}
+            {isSearching 
+              ? "Give me 2 minutes, i will comeback in 2 hours (Searching the web...)" 
+              : attachedImage 
+                ? "Mirror is visualizing the image..." 
+                : "Mirror is thinking..."
+            }
           </motion.div>
         )}
       </div>

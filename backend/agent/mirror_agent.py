@@ -13,6 +13,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import OLLAMA_BASE_URL, OLLAMA_MODEL, DEFAULT_MIRROR_NAME, DEFAULT_SYSTEM_PROMPT
 from data.load.load import get_retriever
+from agent.sessions import get_file_history, update_session_metadata
 
 def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio=""):
     """Builds a local RAG-based mirror agent using Ollama."""
@@ -60,13 +61,9 @@ def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio=""):
     
     return rag_chain
 
-# Simple in-memory history store for session-based mirroring
-store = {}
-
+# File-based history store
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
+    return get_file_history(session_id)
 
 def get_mirror_executor(session_id: str, name=DEFAULT_MIRROR_NAME, bio=""):
     rag_chain = build_mirror_agent(name, bio)

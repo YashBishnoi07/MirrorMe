@@ -106,7 +106,7 @@ export default function KnowledgeBase({ isOpen, onClose }: { isOpen: boolean; on
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-full max-w-md bg-ivory shadow-2xl z-50 flex flex-col border-l border-[#e8e6db]"
+            className="fixed top-0 right-0 h-full w-full max-w-md bg-card shadow-2xl z-50 flex flex-col border-l border-border"
           >
             <div className="p-6 border-b border-[#e8e6db] flex items-center justify-between">
               <div className="flex items-center gap-2 text-terracotta">

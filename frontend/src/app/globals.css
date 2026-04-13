@@ -12,13 +12,21 @@
 }
 
 :root {
-  --background: var(--color-parchment);
-  --foreground: var(--color-near-black);
+  --bg: #f5f4ed;
+  --fg: #141413;
+  --card: #faf9f5;
+  --sidebar: #faf9f5;
+  --border: #e8e6db;
+  --accent: #c96442;
+  --muted: rgba(20, 20, 19, 0.4);
+  --bubble-ai: #faf9f5;
+  --bubble-user: #e8e6db;
+  --scrollbar: #dcd9c6;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-sans);
 }
 
@@ -31,14 +39,15 @@ h1, h2, h3, .serif {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-parchment);
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #dcd9c6;
+  background: var(--scrollbar);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #ccc9b4;
+  background: var(--accent);
+  opacity: 0.5;
 }
 
 .claude-shadow {
@@ -46,7 +55,7 @@ h1, h2, h3, .serif {
 }
 
 .claude-card {
-  background: var(--color-ivory);
-  border: 1px solid #e8e6db;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }

@@ -16,6 +16,9 @@ from agent.mirror_agent import get_mirror_executor
 from agent.analyzer import analyze_persona_style
 from agent.voice import get_speech_url
 from agent.vision_model import analyze_image
+from agent.reflector import generate_reflection
+from agent.search import web_search, is_search_needed
+from agent.sessions import get_sessions_index, get_file_history, update_session_metadata, delete_session, rename_session
 
 app = FastAPI(title="MirrorMe API")
 
@@ -39,6 +42,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    searching: bool = False
 
 class IngestRequest(BaseModel):
     url: Optional[str] = None
@@ -50,6 +54,9 @@ class FactUpdate(BaseModel):
 class Persona(BaseModel):
     name: str
     bio: str
+
+class RenameRequest(BaseModel):
+    title: str
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(
@@ -70,6 +77,15 @@ async def chat(
 
         # If there's an image, we handle it as a vision request (Eyes + Brain)
         final_message = message
+        
+        # Check if we should automatically search the web for fresh info
+        is_searching = False
+        if is_search_needed(message):
+            print(f"Automatic search triggered for: {message}")
+            search_results = web_search(message)
+            final_message = f"[System: External Web Search Results:\n{search_results}]\n\nUser Question: {message}"
+            is_searching = True
+
         if image:
             # Save image for processing
             image_path = os.path.join(DATA_DIR, f"chat_{image.filename}")
@@ -78,7 +94,7 @@ async def chat(
             
             print(f"Vision detection (Moondream) for: {image.filename}...")
             vision_analysis = analyze_image(image_path, mode="critique")
-            final_message = f"[System: The user attached an image. Here is your visual analysis of it: {vision_analysis}]\n\nUser Question: {message}"
+            final_message = f"[System: The user attached an image. Here is your visual analysis of it: {vision_analysis}]\n\nUser Question: {final_message if is_searching else message}"
 
         # Standard Text Chat (RAG + TinyLlama)
         executor = get_mirror_executor(session_id, persona_name, persona_bio)
@@ -86,7 +102,18 @@ async def chat(
             {"input": final_message},
             config={"configurable": {"session_id": session_id}}
         )
-        return ChatResponse(answer=result["answer"])
+        
+        # Update session metadata (Last Active)
+        # If it's a very short history, generate a title
+        history = get_file_history(session_id)
+        messages_in_history = history.messages
+        if len(messages_in_history) <= 2: # User + AI
+            title = message[:30] + "..." if len(message) > 30 else message
+            update_session_metadata(session_id, title=title)
+        else:
+            update_session_metadata(session_id)
+
+        return ChatResponse(answer=result["answer"], searching=is_searching)
     except Exception as e:
         print(f"Chat error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
@@ -202,6 +229,76 @@ async def update_fact(fact_id: str, fact_update: FactUpdate):
 @app.get("/health")
 def health():
     return {"status": "MirrorMe Backend Alive"}
+
+@app.get("/journals")
+async def get_journals():
+    try:
+        retriever = get_retriever(collection_name="mirror_journals")
+        vector_store = retriever.vectorstore
+        results = vector_store.get()
+        
+        journals = []
+        if results and "documents" in results:
+            for i in range(len(results["documents"])):
+                meta = results["metadatas"][i]
+                journals.append({
+                    "id": results["ids"][i],
+                    "content": results["documents"][i],
+                    "date_label": meta.get("date_label", "Reflection"),
+                    "timestamp": meta.get("timestamp", "")
+                })
+        
+        # Sort by timestamp (newest first)
+        journals.sort(key=lambda x: x["timestamp"], reverse=False) # Oldest first for timeline? No, newest for list.
+        return {"journals": journals}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/journals/reflect")
+async def trigger_reflection():
+    try:
+        # Load persona
+        persona_name = DEFAULT_MIRROR_NAME
+        persona_bio = ""
+        if os.path.exists(PERSONA_PATH):
+            with open(PERSONA_PATH, "r") as f:
+                data = json.load(f)
+                persona_name = data.get("name", persona_name)
+                persona_bio = data.get("bio", "")
+        
+        reflection = generate_reflection(persona_name, persona_bio)
+        if reflection:
+            return reflection
+        raise HTTPException(status_code=500, detail="Failed to generate reflection")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/sessions")
+async def list_sessions():
+    return {"sessions": get_sessions_index()}
+
+@app.get("/sessions/{session_id}/history")
+async def get_history(session_id: str):
+    history = get_file_history(session_id)
+    messages = []
+    for m in history.messages:
+        role = "user" if m.type == "human" else "mirror"
+        messages.append({"role": role, "content": m.content})
+    return {"messages": messages}
+
+@app.delete("/sessions/{session_id}")
+async def remove_session(session_id: str):
+    delete_session(session_id)
+    return {"status": "deleted"}
+
+@app.patch("/sessions/{session_id}")
+async def rename_chat(session_id: str, request: RenameRequest):
+    new_title = request.title
+    if not new_title:
+        raise HTTPException(status_code=400, detail="Title is required")
+    rename_session(session_id, new_title)
+    # Return fresh sessions immediately
+    return {"sessions": get_sessions_index()}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
