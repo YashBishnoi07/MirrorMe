@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, RefreshCw, Image as ImageIcon, X } from "lucide-react";
+import { Send, Mic, RefreshCw, Image as ImageIcon, X, Camera } from "lucide-react";
 import MessageBubble, { Message } from "./MessageBubble";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -28,6 +28,9 @@ export default function ChatWindow({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Immediate clear for optimistic switching feel
+    setMessages([]);
+    
     // Load history when session changes
     const loadHistory = async () => {
       setIsLoading(true);
@@ -37,7 +40,18 @@ export default function ChatWindow({
         if (data.messages && data.messages.length > 0) {
           setMessages(data.messages);
         } else {
-          setMessages([{ role: "mirror", content: "Hi there. This is a new conversation. What's on your mind?" }]);
+          // Check for proactive message first if it's a brand new session
+          try {
+            const proRes = await fetch(`http://127.0.0.1:8000/chat/proactive?session_id=${sessionId}`);
+            const proData = await proRes.json();
+            if (proData.message) {
+               setMessages([{ role: "mirror", content: proData.message, isProactive: true }]);
+            } else {
+               setMessages([{ role: "mirror", content: "Hi there. This is a new conversation. What's on your mind?" }]);
+            }
+          } catch (e) {
+            setMessages([{ role: "mirror", content: "Hi there. This is a new conversation. What's on your mind?" }]);
+          }
         }
       } catch (e) {
         console.error("History load error", e);
@@ -108,7 +122,11 @@ export default function ChatWindow({
       if (!response.ok) throw new Error("Failed to chat");
 
       const data = await response.json();
-      setMessages((prev) => [...prev, { role: "mirror", content: data.answer }]);
+      setMessages((prev) => [...prev, { 
+        role: "mirror", 
+        content: data.answer,
+        mood: data.mood 
+      }]);
     } catch (error) {
       console.error(error);
       setMessages((prev) => [...prev, { role: "mirror", content: "Sorry, I had trouble connecting to my brain. Is the backend running?" }]);
@@ -177,6 +195,7 @@ export default function ChatWindow({
             ref={fileInputRef}
             onChange={onImageChange}
             accept="image/*"
+            capture="user"
             className="hidden" 
           />
           <button 
@@ -185,17 +204,44 @@ export default function ChatWindow({
               "p-3 hover:bg-[#eae7d6] rounded-xl transition-colors",
               attachedImage ? "text-terracotta" : "text-near-black opacity-60"
             )}
+            title="Upload Image"
           >
             <ImageIcon className="w-5 h-5" />
           </button>
           
-          <input
-            type="text"
+          <button 
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.setAttribute("capture", "user");
+                fileInputRef.current.click();
+              }
+            }}
+            className={cn(
+              "p-3 hover:bg-[#eae7d6] rounded-xl transition-colors flex items-center gap-2",
+              attachedImage ? "text-terracotta" : "text-near-black opacity-60"
+            )}
+            title="Mirror Me (Camera)"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+          
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Auto-expand height
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder="Talk to your Mirror..."
-            className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-lg"
+            rows={1}
+            className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-lg text-[#141413] font-medium placeholder:opacity-40 resize-none max-h-[200px] overflow-y-auto"
           />
           <button 
             onClick={handleSend}
@@ -206,7 +252,7 @@ export default function ChatWindow({
           </button>
         </div>
         <p className="text-[10px] text-center mt-3 opacity-30 uppercase tracking-widest font-bold">
-          Claude Systems Inspired Design
+          MirrorMe: Personalized Agentic Digital Twin
         </p>
       </div>
     </div>

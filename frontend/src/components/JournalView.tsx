@@ -102,7 +102,7 @@ export default function JournalView({ isOpen, onClose }: { isOpen: boolean; onCl
               ) : (
                 journals.map((entry, idx) => (
                   <motion.div
-                    key={entry.id}
+                    key={entry.id || `journal-${idx}`}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}

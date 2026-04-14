@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import ChatWindow from "@/components/ChatWindow";
 import KnowledgeBase from "@/components/KnowledgeBase";
 import JournalView from "@/components/JournalView";
+import PersonaSettings from "@/components/PersonaSettings";
+import LivingMirror from "@/components/LivingMirror";
 import Link from "next/link";
-import { LayoutDashboard, Settings, UserCircle, LogOut, Brain, BookOpen, Plus, MessageSquare, Trash2, Clock } from "lucide-react";
+import { LayoutDashboard, Settings, UserCircle, LogOut, Brain, BookOpen, Plus, MessageSquare, Trash2, Clock, Camera, CameraOff, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -16,11 +19,30 @@ function cn(...inputs: ClassValue[]) {
 export default function ChatPage() {
   const [isKbOpen, setIsKbOpen] = useState(false);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAutoMirror, setIsAutoMirror] = useState(false);
+  const [moodComment, setMoodComment] = useState<string | null>(null);
   const [personaName, setPersonaName] = useState("Yash");
   const [activeSessionId, setActiveSessionId] = useState<string>("default-session");
   const [sessions, setSessions] = useState<any[]>([]);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  const handleMoodChange = (mood: string) => {
+    // Generate helpful commentary based on mood shift
+    const normalized = mood.toLowerCase();
+    let comment = "";
+    if (normalized.includes("happy")) comment = `${personaName} noticed you're in a great mood!`;
+    else if (normalized.includes("focus")) comment = `${personaName} is matching your focus.`;
+    else if (normalized.includes("tired")) comment = `Take it easy, ${personaName} is here if you need to vent.`;
+    else if (normalized.includes("stress")) comment = `${personaName} is sensing some tension. Calm mode active.`;
+    else comment = `${personaName} sees you're in a calm state.`;
+    
+    if (comment) {
+      setMoodComment(comment);
+      setTimeout(() => setMoodComment(null), 5000);
+    }
+  };
 
   // Load sessions
   useEffect(() => {
@@ -100,9 +122,9 @@ export default function ChatPage() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-parchment overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] transition-colors duration-[3000ms]">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-72 flex-col bg-ivory border-r border-[#e8e6db] p-6 justify-between">
+      <aside className="hidden md:flex w-72 flex-col bg-ivory border-r border-border p-6 justify-between">
         <div className="space-y-8">
           <div className="flex items-center justify-between mb-10">
             <Link href="/" className="flex items-center gap-2">
@@ -113,12 +135,27 @@ export default function ChatPage() {
             </Link>
             
             {/* Status Pulse */}
-            <div className="flex items-center gap-2 px-2 py-1 bg-[#fcfbf7] rounded-full border border-[#eee] text-[10px] font-bold uppercase tracking-widest">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-sage"></span>
-              </span>
-              Alive
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-2 py-1 bg-[#fcfbf7] rounded-full border border-[#eee] text-[10px] font-bold uppercase tracking-widest">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-sage"></span>
+                </span>
+                Alive
+              </div>
+              
+              <button 
+                onClick={() => setIsAutoMirror(!isAutoMirror)}
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1.5 rounded-full border transition-all text-[10px] font-bold uppercase tracking-widest",
+                  isAutoMirror 
+                    ? "bg-terracotta/10 border-terracotta text-terracotta" 
+                    : "bg-[#fcfbf7] border-[#eee] text-fg opacity-40 hover:opacity-100"
+                )}
+              >
+                {isAutoMirror ? <Camera className="w-3 h-3" /> : <CameraOff className="w-3 h-3" />}
+                Auto-Mirror {isAutoMirror ? "On" : "Off"}
+              </button>
             </div>
           </div>
           
@@ -131,7 +168,7 @@ export default function ChatPage() {
               New Conversation
             </button>
 
-            <Link href="/chat" className="flex items-center gap-3 px-4 py-3 bg-[#eae7d6] dark:bg-[#33312c] rounded-xl text-near-black dark:text-ivory font-medium transition-all">
+            <Link href="/chat" className="flex items-center gap-3 px-4 py-3 bg-[#eae7d6] rounded-xl text-near-black font-medium transition-all">
               <LayoutDashboard className="w-5 h-5 opacity-70" />
               Dashboard
             </Link>
@@ -148,8 +185,8 @@ export default function ChatPage() {
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative",
                     activeSessionId === s.id 
-                      ? "bg-[#eae7d6] dark:bg-[#33312c] text-near-black dark:text-ivory font-bold" 
-                      : "text-near-black dark:text-ivory opacity-50 hover:opacity-100 hover:bg-[#eae7d6]/50 dark:hover:bg-[#33312c]/50"
+                      ? "bg-[#eae7d6] text-near-black font-bold" 
+                      : "text-near-black opacity-50 hover:opacity-100 hover:bg-[#eae7d6]/50"
                   )}
                 >
                   <MessageSquare className={cn("w-4 h-4", activeSessionId === s.id ? "text-terracotta" : "opacity-40")} />
@@ -186,23 +223,19 @@ export default function ChatPage() {
             <div className="pt-6 border-t border-border mt-6">
               <button 
                 onClick={() => setIsJournalOpen(true)}
-                className="flex items-center gap-3 px-4 py-3 w-full hover:bg-[#eae7d6] dark:hover:bg-[#33312c] rounded-xl text-near-black dark:text-ivory opacity-60 transition-all font-medium"
+                className="flex items-center gap-3 px-4 py-3 w-full hover:bg-[#eae7d6] rounded-xl text-near-black opacity-60 transition-all font-medium"
               >
                 <BookOpen className="w-5 h-5 opacity-70" />
                 Reflections
               </button>
               <button 
                 onClick={() => setIsKbOpen(true)}
-                className="flex items-center gap-3 px-4 py-3 w-full hover:bg-[#eae7d6] dark:hover:bg-[#33312c] rounded-xl text-near-black dark:text-ivory opacity-60 transition-all font-medium"
+                className="flex items-center gap-3 px-4 py-3 w-full hover:bg-[#eae7d6] rounded-xl text-near-black opacity-60 transition-all font-medium"
               >
                 <Brain className="w-5 h-5 opacity-70" />
                 Memory
               </button>
             </div>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-[#eae7d6] dark:hover:bg-[#33312c] rounded-xl text-near-black dark:text-ivory opacity-60 transition-all font-medium">
-              <Settings className="w-5 h-5 opacity-70" />
-              Settings
-            </Link>
           </nav>
         </div>
 
@@ -215,26 +248,57 @@ export default function ChatPage() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col h-full relative">
-        <nav className="flex items-center justify-between px-8 py-4 border-bottom border-black overflow-none md:hidden pt-8">
-           <Link href="/" className="flex items-center gap-2">
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <nav className="flex items-center justify-between px-8 py-4 border-b border-border bg-ivory/50 backdrop-blur-md z-20">
+           <Link href="/" className="md:hidden flex items-center gap-2">
             <div className="w-6 h-6 bg-terracotta rounded-lg rotate-12 flex items-center justify-center text-ivory font-bold text-[10px]">
               M
             </div>
           </Link>
-          <span className="serif font-bold italic">Mirroring {personaName}</span>
-          <button onClick={() => setIsKbOpen(true)} className="md:hidden p-2 text-terracotta">
-            <Brain className="w-5 h-5" />
-          </button>
+          <div className="hidden md:flex flex-col">
+            <h1 className="serif font-bold text-xl">Dashboard</h1>
+            <p className="text-[10px] uppercase tracking-widest font-bold opacity-30">Mirroring {personaName}</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2.5 hover:bg-[#eae7d6] rounded-xl text-near-black opacity-60 hover:opacity-100 transition-all"
+              title="Persona Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            <button onClick={() => setIsKbOpen(true)} className="p-2 text-terracotta hover:scale-110 transition-transform">
+              <Brain className="w-6 h-6" />
+            </button>
+          </div>
         </nav>
         
         <div className="flex-1 overflow-hidden relative">
           <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-bg to-transparent z-10 pointer-events-none" />
           <ChatWindow sessionId={activeSessionId} onNewMessage={fetchSessions} />
+          
+          {/* Mood Commentary Toast */}
+          <AnimatePresence>
+            {moodComment && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                exit={{ opacity: 0, y: 20, x: "-50%" }}
+                className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-ivory shadow-2xl border border-terracotta/20 px-6 py-3 rounded-2xl flex items-center gap-3 claude-shadow"
+              >
+                <div className="w-8 h-8 bg-terracotta/10 rounded-xl flex items-center justify-center text-terracotta">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium serif italic text-fg/80">{moodComment}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         
+        <LivingMirror isActive={isAutoMirror} onMoodChange={handleMoodChange} />
         <KnowledgeBase isOpen={isKbOpen} onClose={() => setIsKbOpen(false)} />
         <JournalView isOpen={isJournalOpen} onClose={() => setIsJournalOpen(false)} />
+        <PersonaSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onUpdate={(name) => setPersonaName(name)} />
       </main>
     </div>
   );

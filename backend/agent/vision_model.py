@@ -29,6 +29,11 @@ def analyze_image(image_path: str, mode: str = "describe") -> str:
             prompt = "What is in this image? Provide a brief description and mention key details like colors and objects."
         elif mode == "critique":
             prompt = "Analyze this image. What is the subject? Is there anything interesting about the composition or style?"
+        elif mode == "mood":
+            prompt = """Analyze the person's face in this image. 
+            Assign them ONE category from this list: [Happy, Focused, Tired, Sad, Calm, Stressed].
+            Even if the expression is subtle, pick the closest one. 
+            Provide only the single word as the response."""
         else:
             prompt = "Describe the main subjects of this image."
 

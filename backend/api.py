@@ -11,7 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from config import DATA_DIR, DEFAULT_MIRROR_NAME, PERSONA_PATH
 from data.extract.extract import extract_from_file, extract_from_url
 from data.transform.transform import transform_to_facts
-from data.load.load import load_to_chroma, get_retriever
+from data.load.load import load_to_chroma, get_retriever, clear_all_memory
+from agent.proactive import generate_proactive_checkin
 from agent.mirror_agent import get_mirror_executor
 from agent.analyzer import analyze_persona_style
 from agent.voice import get_speech_url
@@ -43,6 +44,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     searching: bool = False
+    mood: Optional[str] = None
 
 class IngestRequest(BaseModel):
     url: Optional[str] = None
@@ -54,9 +56,35 @@ class FactUpdate(BaseModel):
 class Persona(BaseModel):
     name: str
     bio: str
+    voice_id: Optional[str] = None
+    voice_name: Optional[str] = None
+
+class AudioRequest(BaseModel):
+    text: str
+    voice_id: Optional[str] = None
 
 class RenameRequest(BaseModel):
     title: str
+
+@app.post("/chat/mood")
+async def detect_mood(image: UploadFile = File(...)):
+    """Fast mood detection for real-time UI adaptive theming."""
+    try:
+        temp_path = os.path.join(DATA_DIR, f"mood_temp_{image.filename}")
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        
+        mood = analyze_image(temp_path, mode="mood")
+        print(f"DEBUG: Moondream Output: '{mood}'") # Added Trace Logging
+        
+        # Clean up
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
+        return {"mood": mood.strip()}
+    except Exception as e:
+        print(f"Mood API error: {e}")
+        return {"mood": "Neutral"}
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(
@@ -86,18 +114,26 @@ async def chat(
             final_message = f"[System: External Web Search Results:\n{search_results}]\n\nUser Question: {message}"
             is_searching = True
 
+        # Vision Logic
+        detected_mood = None
         if image:
             # Save image for processing
             image_path = os.path.join(DATA_DIR, f"chat_{image.filename}")
             with open(image_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
             
+            # Step 1: Detect Mood (Selfie check)
+            print(f"Detecting mood from: {image.filename}...")
+            detected_mood = analyze_image(image_path, mode="mood")
+            print(f"Mood detected: {detected_mood}")
+
+            # Step 2: Visual Analysis (Content check)
             print(f"Vision detection (Moondream) for: {image.filename}...")
             vision_analysis = analyze_image(image_path, mode="critique")
-            final_message = f"[System: The user attached an image. Here is your visual analysis of it: {vision_analysis}]\n\nUser Question: {final_message if is_searching else message}"
+            final_message = f"[System: The user attached an image. Here is your visual analysis of it: {vision_analysis}. Additionally, you notice the user looks {detected_mood}.]\n\nUser Question: {final_message if is_searching else message}"
 
         # Standard Text Chat (RAG + TinyLlama)
-        executor = get_mirror_executor(session_id, persona_name, persona_bio)
+        executor = get_mirror_executor(session_id, persona_name, persona_bio, mood=detected_mood)
         result = executor.invoke(
             {"input": final_message},
             config={"configurable": {"session_id": session_id}}
@@ -113,7 +149,7 @@ async def chat(
         else:
             update_session_metadata(session_id)
 
-        return ChatResponse(answer=result["answer"], searching=is_searching)
+        return ChatResponse(answer=result["answer"], searching=is_searching, mood=detected_mood)
     except Exception as e:
         print(f"Chat error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
@@ -164,13 +200,37 @@ async def get_persona():
     if os.path.exists(PERSONA_PATH):
         with open(PERSONA_PATH, "r") as f:
             return json.load(f)
-    return {"name": DEFAULT_MIRROR_NAME, "bio": ""}
+    return {"name": DEFAULT_MIRROR_NAME, "bio": "", "voice_id": None, "voice_name": None}
 
 @app.post("/persona")
 def save_persona(persona: Persona):
     with open(PERSONA_PATH, "w") as f:
         json.dump(persona.dict(), f)
     return {"message": "Persona saved successfully"}
+
+@app.get("/persona/voices")
+async def list_voices():
+    """Returns a list of high-quality Edge-TTS voices."""
+    return {
+        "voices": [
+            {"id": "en-US-JennyNeural", "name": "Jenny (US - Calm)"},
+            {"id": "en-US-GuyNeural", "name": "Guy (US - Professional)"},
+            {"id": "en-US-AriaNeural", "name": "Aria (US - Bright)"},
+            {"id": "en-GB-SoniaNeural", "name": "Sonia (UK - Soft)"},
+            {"id": "en-GB-RyanNeural", "name": "Ryan (UK - Deep)"},
+            {"id": "en-IN-NeerjaNeural", "name": "Neerja (IN - Warm)"},
+            {"id": "en-AU-NatashaNeural", "name": "Natasha (AU - Friendly)"}
+        ]
+    }
+
+@app.post("/chat/audio")
+async def generate_audio(request: AudioRequest):
+    """Generates audio for a specific text snippet."""
+    try:
+        audio_url = await get_speech_url(request.text, request.voice_id)
+        return {"url": f"http://127.0.0.1:8000/audio/{audio_url}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/persona/analyze")
 def analyze_persona():
@@ -299,6 +359,31 @@ async def rename_chat(session_id: str, request: RenameRequest):
     rename_session(session_id, new_title)
     # Return fresh sessions immediately
     return {"sessions": get_sessions_index()}
+
+@app.delete("/memory")
+async def wipe_memory():
+    try:
+        clear_all_memory()
+        return {"status": "memory_cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/chat/proactive")
+async def get_proactive_message(session_id: str):
+    """Triggers a proactive follow-up based on history."""
+    try:
+        persona_path = PERSONA_PATH
+        with open(persona_path, "r") as f:
+            persona = json.load(f)
+        
+        message = generate_proactive_checkin(persona["name"], persona["bio"])
+        
+        if message:
+            return {"message": message}
+        return {"message": None}
+    except Exception as e:
+        print(f"Proactive API error: {e}")
+        return {"message": None}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

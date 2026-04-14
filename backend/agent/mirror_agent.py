@@ -15,7 +15,7 @@ from config import OLLAMA_BASE_URL, OLLAMA_MODEL, DEFAULT_MIRROR_NAME, DEFAULT_S
 from data.load.load import get_retriever
 from agent.sessions import get_file_history, update_session_metadata
 
-def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio=""):
+def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio="", mood=""):
     """Builds a local RAG-based mirror agent using Ollama."""
     
     llm = ChatOllama(
@@ -44,7 +44,9 @@ def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio=""):
     
     # Main QA chain
     style_guide = f"\nSpeak in the following style: {bio}" if bio else ""
-    qa_system_prompt = (DEFAULT_SYSTEM_PROMPT + style_guide + """
+    mood_guide = f"\n[EMOTIONAL MIRRORING ACTIVE: The user currently looks {mood}. Adjust your personality, tone and support level to match or comfort this specific mood.]" if mood else ""
+    
+    qa_system_prompt = (DEFAULT_SYSTEM_PROMPT + style_guide + mood_guide + """
     
     Context about {name}:
     {context}
@@ -65,8 +67,8 @@ def build_mirror_agent(name=DEFAULT_MIRROR_NAME, bio=""):
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return get_file_history(session_id)
 
-def get_mirror_executor(session_id: str, name=DEFAULT_MIRROR_NAME, bio=""):
-    rag_chain = build_mirror_agent(name, bio)
+def get_mirror_executor(session_id: str, name=DEFAULT_MIRROR_NAME, bio="", mood=""):
+    rag_chain = build_mirror_agent(name, bio, mood)
     
     conversational_rag_chain = RunnableWithMessageHistory(
         rag_chain,

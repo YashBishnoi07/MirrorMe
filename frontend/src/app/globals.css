@@ -22,6 +22,56 @@
   --bubble-ai: #faf9f5;
   --bubble-user: #e8e6db;
   --scrollbar: #dcd9c6;
+  
+  transition: background-color 3s ease, color 3s ease, border-color 3s ease, box-shadow 3s ease, opacity 3s ease;
+}
+
+/* HIGH-CONTRAST MOOD THEMES */
+
+/* Happy / Excited - Sunshine & Energy */
+.mood-happy {
+  --bg: #fff9e6;
+  --accent: #f59e0b;
+  --card: #fffcf2;
+  --border: #fde68a;
+  --bubble-ai: #fffcf2;
+}
+
+/* Tired / Sad - Slate & Depth */
+.mood-tired, .mood-sad {
+  --bg: #f1f5f9;
+  --accent: #64748b;
+  --card: #f8fafc;
+  --fg: #1e293b;
+  --border: #cbd5e1;
+  --bubble-ai: #f8fafc;
+}
+
+/* Focused / Productive - Indigo & Clarity */
+.mood-focused {
+  --bg: #eff6ff;
+  --accent: #2563eb;
+  --card: #f8faff;
+  --border: #bfdbfe;
+  --bubble-ai: #f8faff;
+}
+
+/* Calm / Relaxed - Forest & Peace */
+.mood-calm {
+  --bg: #f0fdf4;
+  --accent: #16a34a;
+  --card: #f7fee7;
+  --border: #bbf7d0;
+  --bubble-ai: #f7fee7;
+}
+
+/* Stressed - Clay & Warning */
+.mood-stressed {
+  --bg: #fef2f2;
+  --accent: #dc2626;
+  --card: #fffafa;
+  --border: #fecaca;
+  --bubble-ai: #fffafa;
 }
 
 body {

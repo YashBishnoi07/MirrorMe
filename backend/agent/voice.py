@@ -10,14 +10,16 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, VOICE_DIR, EDGE_VOICE
 
-async def generate_speech_edge(text: str, output_path: str):
+async def generate_speech_edge(text: str, output_path: str, voice_id: str = None):
     """Generates speech using Microsoft Edge TTS (Free)."""
-    communicate = edge_tts.Communicate(text, EDGE_VOICE)
+    voice = voice_id or EDGE_VOICE
+    communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_path)
 
-def generate_speech_elevenlabs(text: str, output_path: str):
+def generate_speech_elevenlabs(text: str, output_path: str, voice_id: str = None):
     """Generates speech using ElevenLabs (Premium)."""
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+    target_voice = voice_id or ELEVENLABS_VOICE_ID
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{target_voice}"
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
@@ -40,7 +42,7 @@ def generate_speech_elevenlabs(text: str, output_path: str):
         print(f"ElevenLabs error: {response.text}")
         return False
 
-async def get_speech_url(text: str) -> str:
+async def get_speech_url(text: str, voice_id: str = None) -> str:
     """Entry point for speech generation. Returns the filename of the generated MP3."""
     if not text:
         return ""
@@ -50,15 +52,16 @@ async def get_speech_url(text: str) -> str:
     
     # Check if ElevenLabs key is present and useful
     if ELEVENLABS_API_KEY and len(ELEVENLABS_API_KEY) > 10:
-        print("Using ElevenLabs for speech generation...")
-        success = generate_speech_elevenlabs(text, filepath)
+        print(f"Using ElevenLabs ({voice_id or ELEVENLABS_VOICE_ID}) for speech generation...")
+        success = generate_speech_elevenlabs(text, filepath, voice_id)
         if success:
             return filename
     
     # Fallback to Edge TTS
-    print(f"Using Edge TTS ({EDGE_VOICE}) for speech generation...")
+    actual_voice = voice_id or EDGE_VOICE
+    print(f"Using Edge TTS ({actual_voice}) for speech generation...")
     try:
-        await generate_speech_edge(text, filepath)
+        await generate_speech_edge(text, filepath, actual_voice)
         return filename
     except Exception as e:
         print(f"Speech generation error: {e}")

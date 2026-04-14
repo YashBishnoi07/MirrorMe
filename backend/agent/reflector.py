@@ -60,13 +60,15 @@ def generate_reflection(persona_name: str, persona_bio: str):
             "date_label": f"Reflection #{reflection_num}"
         }
         
-        load_to_chroma_collection(
+        # 4. Save to Chroma
+        ids = load_to_chroma_collection(
             texts=[reflection_text],
             collection_name="mirror_journals",
             metadata=[metadata]
         )
         
         return {
+            "id": ids[0] if ids else f"temp_{reflection_num}",
             "content": reflection_text,
             "date_label": metadata["date_label"],
             "timestamp": metadata["timestamp"]

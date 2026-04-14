@@ -47,4 +47,21 @@ def load_to_chroma_collection(texts: list, collection_name: str, metadata: list 
         collection_name=collection_name,
         metadatas=metadata
     )
-    return vector_store
+    return vector_store._collection.get()['ids'][-len(texts):] if hasattr(vector_store, '_collection') else []
+
+
+def clear_all_memory():
+    """Wipes all mirror facts and journals."""
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    
+    collections = ["mirror_facts", "mirror_journals"]
+    for coll in collections:
+        vector_store = Chroma(
+            persist_directory=CHROMA_DIR,
+            embedding_function=embeddings,
+            collection_name=coll
+        )
+        # Delete all documents by fetching IDs first
+        results = vector_store.get()
+        if results and results['ids']:
+            vector_store.delete(ids=results['ids'])
