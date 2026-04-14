@@ -19,14 +19,16 @@ __pycache__/
 backend/data/local/*
 !backend/data/local/.gitkeep
 
-# Audio & Media
+# Audio & Media (Keep local/temp audio ignored)
+backend/data/local/voice/*
 *.mp3
 *.wav
-*.png
-*.jpg
-*.jpeg
-*.webp
-backend/data/local/voice/*
+
+# Allow documentation screenshots
+!screenshots/*.png
+!screenshots/*.jpg
+!screenshots/*.jpeg
+!screenshots/*.webp
 
 # OS Files
 .DS_Store
