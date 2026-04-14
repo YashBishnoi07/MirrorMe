@@ -6,6 +6,18 @@ MirrorMe is a next-generation "Digital Twin" agent that learns from your data, m
 ![Python](https://img.shields.io/badge/python-3.9+-yellow.svg)
 ![Next.js](https://img.shields.io/badge/next.js-15-black.svg)
 
+## 📸 Visual Showcase
+
+<p align="center">
+  <img src="./screenshots/proto-1.jpg" width="45%" />
+  <img src="./screenshots/proto-2.jpg" width="45%" />
+</p>
+<p align="center">
+  <img src="./screenshots/proto-3.jpg" width="30%" />
+  <img src="./screenshots/proto-4.jpg" width="30%" />
+  <img src="./screenshots/proto-5.jpg" width="30%" />
+</p>
+
 ## ✨ Core Features (Newly Evolved)
 
 ### 🎭 Custom Voice Identity
