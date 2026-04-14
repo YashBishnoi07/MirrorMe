@@ -9,13 +9,8 @@ MirrorMe is a next-generation "Digital Twin" agent that learns from your data, m
 ## 📸 Visual Showcase
 
 <p align="center">
-  <img src="./screenshots/proto-1.jpg" width="45%" />
-  <img src="./screenshots/proto-2.jpg" width="45%" />
-</p>
-<p align="center">
-  <img src="./screenshots/proto-3.jpg" width="30%" />
-  <img src="./screenshots/proto-4.jpg" width="30%" />
-  <img src="./screenshots/proto-5.jpg" width="30%" />
+  <img src="./screenshots/proto-1.jpg" width="48%" />
+  <img src="./screenshots/proto-2.jpg" width="48%" />
 </p>
 
 ## ✨ Core Features (Newly Evolved)
